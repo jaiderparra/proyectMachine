@@ -15,7 +15,7 @@ El sistema DEBE manejar exactamente tres roles: `ADMIN`, `COORDINADOR` y `SOLICI
 - **ENTONCES** recibe `400` con código `VALIDATION_ERROR`
 
 ### Requisito ROL-02: Autenticación obligatoria
-Todas las rutas de la API, excepto `/health`, `/auth/register` y `/auth/login`, DEBEN exigir un token válido en el encabezado `Authorization: Bearer <token>`.
+Todas las rutas de la API, excepto `/health`, `/auth/register` y `/auth/login`, DEBEN exigir un token válido en el encabezado `Authorization: Bearer <token>`. En cada petición el sistema DEBE verificar que el usuario del token exista y esté activo, y DEBE usar el rol vigente en la base de datos.
 
 #### Escenario ROL-02-E1: Sin token
 - **CUANDO** se consulta `GET /spaces` sin token
@@ -24,6 +24,16 @@ Todas las rutas de la API, excepto `/health`, `/auth/register` y `/auth/login`, 
 #### Escenario ROL-02-E2: Token inválido o expirado
 - **CUANDO** se envía un token alterado
 - **ENTONCES** se recibe `401`
+
+#### Escenario ROL-02-E3: Usuario desactivado con token vigente
+- **DADO** un usuario con token vigente que luego es desactivado por un `ADMIN`
+- **CUANDO** usa ese token
+- **ENTONCES** recibe `401`
+
+#### Escenario ROL-02-E4: Cambio de rol con efecto inmediato
+- **DADO** un `SOLICITANTE` con token vigente que es promovido a `COORDINADOR`
+- **CUANDO** usa el mismo token para aprobar una solicitud
+- **ENTONCES** la operación se permite (el rol se lee de la base de datos en cada petición)
 
 ### Requisito ROL-03: Matriz de permisos
 El sistema DEBE aplicar la siguiente matriz. Una operación no permitida DEBE responder `403` con código `FORBIDDEN`.

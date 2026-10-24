@@ -57,3 +57,4 @@ El sistema DEBE / NO DEBE ...
 | CON | Prevención de reservas simultáneas |
 | APR | Aprobación y rechazo |
 | CAN / HIS | Cancelación e historial |
+| UI | Interfaz web (agregada en la revisión, H15) |

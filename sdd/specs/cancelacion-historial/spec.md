@@ -7,7 +7,7 @@ Liberar espacios que ya no se usarán y conservar la trazabilidad completa de ca
 ## Requisitos
 
 ### Requisito CAN-01: Cancelar reserva
-El propietario de una reserva o un `ADMIN` DEBE poder cancelarla si está en estado `PENDIENTE` o `APROBADA`, con un motivo opcional (`reason`). La reserva pasa a `CANCELADA`, deja de bloquear la franja y se crea una entrada de historial.
+El propietario de una reserva, un `COORDINADOR` o un `ADMIN` DEBEN poder cancelarla si está en estado `PENDIENTE` o `APROBADA` y su hora de inicio aún no ha llegado, con un motivo opcional (`reason`, máx. 300 caracteres) que se guarda como comentario del historial. La reserva pasa a `CANCELADA`, deja de bloquear la franja y se crea una entrada de historial. Una reserva que ya comenzó o terminó NO DEBE cancelarse (`422`, `BUSINESS_RULE`).
 
 #### Escenario CAN-01-E1: Cancelación por el propietario
 - **DADO** una solicitud pendiente del solicitante A
@@ -28,6 +28,16 @@ El propietario de una reserva o un `ADMIN` DEBE poder cancelarla si está en est
 - **DADO** una reserva `RECHAZADA` o ya `CANCELADA`
 - **CUANDO** se intenta cancelar
 - **ENTONCES** se recibe `409` con código `INVALID_STATE`
+
+#### Escenario CAN-01-E5: Cancelación por coordinador
+- **DADO** una reserva aprobada del solicitante A
+- **CUANDO** un `COORDINADOR` la cancela con motivo "Evento institucional"
+- **ENTONCES** recibe `200`, estado `CANCELADA`, y el motivo queda en el historial
+
+#### Escenario CAN-01-E6: Reserva ya iniciada
+- **DADO** una reserva aprobada cuya hora de inicio ya pasó
+- **CUANDO** su propietario intenta cancelarla
+- **ENTONCES** recibe `422` con código `BUSINESS_RULE`
 
 ### Requisito HIS-01: Registro de historial
 Cada transición de estado de una reserva (creación, aprobación, rechazo, cancelación) DEBE registrar una entrada con `fromStatus`, `toStatus`, `changedBy`, `changedAt` y `comment`. El historial NO DEBE poder modificarse ni eliminarse.

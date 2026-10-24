@@ -7,7 +7,7 @@ Formalizar la decisión sobre cada solicitud con responsable y motivo (problema 
 ## Requisitos
 
 ### Requisito APR-01: Aprobar solicitud
-Un `COORDINADOR` o `ADMIN` DEBE poder aprobar una solicitud en estado `PENDIENTE`. La reserva pasa a `APROBADA`, se registra quién decidió (`decidedBy`) y se crea una entrada de historial. Se aplica CON-03.
+Un `COORDINADOR` o `ADMIN` DEBE poder aprobar una solicitud en estado `PENDIENTE`. La reserva pasa a `APROBADA`, se registra quién decidió (`decidedBy`) y se crea una entrada de historial. Se aplica CON-03. NO DEBE aprobarse una solicitud cuya hora de inicio ya pasó (`422`, `BUSINESS_RULE`); sí puede rechazarse.
 
 #### Escenario APR-01-E1: Aprobación exitosa
 - **DADO** una solicitud pendiente
@@ -22,6 +22,16 @@ Un `COORDINADOR` o `ADMIN` DEBE poder aprobar una solicitud en estado `PENDIENTE
 #### Escenario APR-01-E3: Reserva inexistente
 - **CUANDO** se intenta aprobar una reserva que no existe
 - **ENTONCES** se recibe `404`
+
+#### Escenario APR-01-E4: Solicitud vencida
+- **DADO** una solicitud pendiente cuya hora de inicio ya pasó
+- **CUANDO** un `COORDINADOR` intenta aprobarla
+- **ENTONCES** recibe `422` con código `BUSINESS_RULE`
+
+#### Escenario APR-01-E5: Solicitante sin permiso
+- **DADO** un `SOLICITANTE`
+- **CUANDO** intenta aprobar una solicitud
+- **ENTONCES** recibe `403` (ver ROL-03-E1)
 
 ### Requisito APR-02: Rechazar solicitud
 Un `COORDINADOR` o `ADMIN` DEBE poder rechazar una solicitud `PENDIENTE` indicando obligatoriamente un motivo (`reason`, 5–300 caracteres). La reserva pasa a `RECHAZADA`, se guarda el motivo y se crea una entrada de historial.

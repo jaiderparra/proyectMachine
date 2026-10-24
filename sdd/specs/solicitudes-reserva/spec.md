@@ -35,23 +35,24 @@ Toda solicitud DEBE cumplir:
 4. Inicio posterior al momento actual.
 5. Duración mínima de 30 minutos.
 
-Los errores de formato DEBEN responder `400`. Las violaciones de los puntos 2 a 5 con datos bien formados DEBEN responder `400`.
+Los errores de formato DEBEN responder `400`. Las violaciones de los puntos 2 a 5 con datos bien formados DEBEN responder `422` con código `BUSINESS_RULE` y un mensaje que indique la regla incumplida.
 
 #### Escenario RES-02-E1: Fin anterior al inicio
 - **CUANDO** solicita de 10:00 a 09:00
-- **ENTONCES** la solicitud es rechazada
+- **ENTONCES** recibe `422` con código `BUSINESS_RULE`
 
 #### Escenario RES-02-E2: Fuera del horario de operación
 - **CUANDO** solicita de 21:00 a 23:00
-- **ENTONCES** la solicitud es rechazada
+- **ENTONCES** recibe `422` con código `BUSINESS_RULE`
 
 #### Escenario RES-02-E3: Fecha pasada
-- **CUANDO** solicita una franja que ya comenzó o pasó
-- **ENTONCES** la solicitud es rechazada
+- **DADO** que el momento actual es `2030-05-10 09:00`
+- **CUANDO** solicita ese día de 08:00 a 10:00
+- **ENTONCES** recibe `422` con código `BUSINESS_RULE`
 
 #### Escenario RES-02-E4: Duración insuficiente
 - **CUANDO** solicita de 08:00 a 08:15
-- **ENTONCES** la solicitud es rechazada
+- **ENTONCES** recibe `422` con código `BUSINESS_RULE`
 
 #### Escenario RES-02-E5: Formato inválido
 - **CUANDO** envía `date = "10/05/2030"` o `startTime = "8am"`
@@ -64,6 +65,11 @@ El sistema DEBE permitir listar reservas con filtros opcionales `status`, `space
 - **DADO** reservas en distintos estados
 - **CUANDO** un `COORDINADOR` consulta `GET /reservations?status=PENDIENTE`
 - **ENTONCES** solo recibe reservas pendientes
+
+#### Escenario RES-03-E3: Coordinador ve todas
+- **DADO** reservas de varios solicitantes
+- **CUANDO** un `COORDINADOR` consulta `GET /reservations`
+- **ENTONCES** recibe las reservas de todos, con `spaceName` y `userName`
 
 #### Escenario RES-03-E2: Detalle de reserva
 - **CUANDO** el propietario consulta `GET /reservations/:id`

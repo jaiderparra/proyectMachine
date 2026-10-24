@@ -30,7 +30,7 @@ El sistema DEBE permitir a un `ADMIN` registrar un espacio con: `name` (obligato
 - **ENTONCES** recibe `403`
 
 ### Requisito ESP-02: Consultar espacios
-El sistema DEBE permitir a cualquier usuario autenticado listar los espacios y consultar el detalle de uno. El listado PUEDE filtrarse por `type`.
+El sistema DEBE permitir a cualquier usuario autenticado listar los espacios y consultar el detalle de uno. El listado PUEDE filtrarse por `type`. Por defecto el listado DEBE incluir solo espacios activos; el parámetro `includeInactive=true` solo tiene efecto para `ADMIN` y `COORDINADOR`.
 
 #### Escenario ESP-02-E1: Listado
 - **DADO** que existen espacios registrados
@@ -46,6 +46,13 @@ El sistema DEBE permitir a cualquier usuario autenticado listar los espacios y c
 - **CUANDO** consulta `GET /spaces/9999`
 - **ENTONCES** recibe `404`
 
+#### Escenario ESP-02-E4: Espacios inactivos ocultos al solicitante
+- **DADO** un espacio inactivo
+- **CUANDO** un `SOLICITANTE` consulta `GET /spaces?includeInactive=true`
+- **ENTONCES** el espacio inactivo no aparece
+- **Y CUANDO** un `ADMIN` hace la misma consulta
+- **ENTONCES** el espacio inactivo sí aparece
+
 ### Requisito ESP-03: Actualizar espacio
 El sistema DEBE permitir a un `ADMIN` modificar parcialmente los datos de un espacio, aplicando las mismas validaciones de ESP-01.
 
@@ -59,7 +66,7 @@ El sistema DEBE permitir a un `ADMIN` modificar parcialmente los datos de un esp
 - **ENTONCES** recibe `409` con código `DUPLICATE`
 
 ### Requisito ESP-04: Activar e inactivar espacio
-El sistema DEBE permitir a un `ADMIN` inactivar o reactivar un espacio (`active`). Un espacio inactivo NO DEBE recibir nuevas solicitudes de reserva. Los espacios NO DEBEN eliminarse físicamente, para preservar el historial.
+El sistema DEBE permitir a un `ADMIN` inactivar o reactivar un espacio (`active`). Un espacio inactivo NO DEBE recibir nuevas solicitudes de reserva. Un espacio NO DEBE inactivarse si tiene reservas activas (`PENDIENTE` o `APROBADA`) con fecha y hora de inicio futuras; primero deben cancelarse o rechazarse. Los espacios NO DEBEN eliminarse físicamente, para preservar el historial.
 
 #### Escenario ESP-04-E1: Inactivación
 - **DADO** un espacio activo sin reservas futuras
@@ -70,6 +77,11 @@ El sistema DEBE permitir a un `ADMIN` inactivar o reactivar un espacio (`active`
 - **DADO** un espacio inactivo
 - **CUANDO** un usuario crea una solicitud para ese espacio
 - **ENTONCES** recibe `422` con código `BUSINESS_RULE`
+
+#### Escenario ESP-04-E3: Inactivación con reservas futuras
+- **DADO** un espacio con una reserva aprobada futura
+- **CUANDO** el `ADMIN` intenta inactivarlo
+- **ENTONCES** recibe `422` con código `BUSINESS_RULE` y el espacio sigue activo
 
 ## Restricciones
 

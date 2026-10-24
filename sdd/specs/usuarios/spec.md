@@ -43,7 +43,7 @@ El sistema DEBE autenticar con correo y contraseña y devolver un token JWT con 
 - **ENTONCES** recibe `403`
 
 ### Requisito USR-03: Administración de usuarios
-El sistema DEBE permitir a un `ADMIN` listar usuarios, crear usuarios con cualquier rol y modificar `name`, `role` y `active` de un usuario existente.
+El sistema DEBE permitir a un `ADMIN` listar usuarios, crear usuarios con cualquier rol y modificar `name`, `role` y `active` de un usuario existente. Un `ADMIN` NO DEBE poder desactivarse a sí mismo ni quitarse su propio rol `ADMIN` (evita dejar el sistema sin administrador).
 
 #### Escenario USR-03-E1: Crear coordinador
 - **DADO** un `ADMIN` autenticado
@@ -57,6 +57,11 @@ El sistema DEBE permitir a un `ADMIN` listar usuarios, crear usuarios con cualqu
 #### Escenario USR-03-E3: Desactivar usuario
 - **CUANDO** el `ADMIN` envía `active = false` para un usuario
 - **ENTONCES** recibe `200` y el usuario queda inactivo
+
+#### Escenario USR-03-E5: Autobloqueo del administrador
+- **DADO** un `ADMIN` autenticado
+- **CUANDO** intenta desactivarse a sí mismo o quitarse el rol `ADMIN`
+- **ENTONCES** recibe `422` con código `BUSINESS_RULE`
 
 #### Escenario USR-03-E4: Usuario sin permiso
 - **DADO** un `COORDINADOR` autenticado
