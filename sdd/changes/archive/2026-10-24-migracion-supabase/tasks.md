@@ -19,4 +19,4 @@
 - [x] 3.3 Prueba de humo contra Supabase real (migración, semilla, flujo de reserva).
 
 ## 4. Cierre
-- [ ] 4.1 Fusionar delta, actualizar README/informe y archivar.
+- [x] 4.1 Fusionar delta, actualizar README/informe y archivar.
