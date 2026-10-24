@@ -20,4 +20,4 @@
 - [x] 3.4 `next build` sin errores.
 
 ## 4. Cierre
-- [ ] 4.1 Fusionar deltas en `sdd/specs/` y archivar el cambio.
+- [x] 4.1 Fusionar deltas en `sdd/specs/` y archivar el cambio.
