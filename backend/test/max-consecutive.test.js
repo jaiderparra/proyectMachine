@@ -1,6 +1,6 @@
 const { test, describe, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
-const { setup, insertReservation, SPACES } = require('./helpers');
+const { setup, insertReservation, SPACES, countRows } = require('./helpers');
 
 // Cambio limite-cuatro-horas: RES-04 y APR-01-E6
 const request = (overrides = {}) => ({
@@ -88,15 +88,15 @@ describe('RES-04 Duración consecutiva máxima', () => {
 
   test('la regla no deja rastro: una solicitud rechazada por RES-04 no crea reserva ni historial', async () => {
     await solic.post('/api/reservations', request({ endTime: '13:00' }));
-    assert.equal(ctx.db.prepare('SELECT COUNT(*) AS c FROM reservations').get().c, 0);
-    assert.equal(ctx.db.prepare('SELECT COUNT(*) AS c FROM reservation_history').get().c, 0);
+    assert.equal(await countRows(ctx.db, 'reservations'), 0);
+    assert.equal(await countRows(ctx.db, 'reservation_history'), 0);
   });
 });
 
 describe('APR-01 (modificado) Aprobación con límite de cuatro horas', () => {
   test('APR-01-E6 pendiente previa de 5 h no se puede aprobar → 422 y sigue PENDIENTE', async () => {
     const ctx = await setup();
-    const id = insertReservation(ctx.db, {
+    const id = await insertReservation(ctx.db, {
       spaceId: SPACES.LAB_REDES, date: '2030-05-10', startTime: '08:00', endTime: '13:00', status: 'PENDIENTE',
     });
     const res = await ctx.as(ctx.tokens.coord).post(`/api/reservations/${id}/approve`);

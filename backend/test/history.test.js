@@ -39,9 +39,9 @@ describe('HIS-01 / HIS-02 Historial de una reserva', () => {
     assert.equal(res.status, 403);
   });
 
-  test('HIS-01 el historial es inmutable a nivel de base de datos', () => {
-    assert.throws(() => ctx.db.prepare("UPDATE reservation_history SET comment = 'x'").run(), /inmutable/);
-    assert.throws(() => ctx.db.prepare('DELETE FROM reservation_history').run(), /inmutable/);
+  test('HIS-01 el historial es inmutable a nivel de base de datos', async () => {
+    await assert.rejects(ctx.db.query("UPDATE reservation_history SET comment = 'x'"), /inmutable/);
+    await assert.rejects(ctx.db.query('DELETE FROM reservation_history'), /inmutable/);
   });
 
   test('el rechazo guarda el motivo en el historial', async () => {

@@ -1,6 +1,6 @@
 const { test, describe, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
-const { setup, SPACES } = require('./helpers');
+const { setup, SPACES, countRows } = require('./helpers');
 
 const request = (overrides = {}) => ({
   spaceId: SPACES.LAB_REDES,
@@ -65,16 +65,16 @@ describe('CON-04 Atomicidad', () => {
     ]);
     const statuses = results.map((r) => r.status).sort();
     assert.deepEqual(statuses, [201, 409, 409]);
-    const { count } = ctx.db.prepare("SELECT COUNT(*) AS count FROM reservations WHERE status = 'PENDIENTE'").get();
+    const count = await countRows(ctx.db, 'reservations', "status = 'PENDIENTE'");
     assert.equal(count, 1);
   });
 
   test('si falla la escritura no queda nada a medias (rollback)', async () => {
     const ctx = await setup();
-    const before = ctx.db.prepare('SELECT COUNT(*) AS count FROM reservation_history').get().count;
+    const before = await countRows(ctx.db, 'reservation_history');
     const res = await ctx.as(ctx.tokens.solic).post('/api/reservations', request({ attendees: 999 }));
     assert.equal(res.status, 422);
-    const after = ctx.db.prepare('SELECT COUNT(*) AS count FROM reservation_history').get().count;
+    const after = await countRows(ctx.db, 'reservation_history');
     assert.equal(after, before);
   });
 });

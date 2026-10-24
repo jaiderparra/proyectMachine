@@ -1,6 +1,7 @@
 const { validate, parseId } = require('../../utils/validation');
 const { localParts } = require('../../utils/time');
 const { duplicate, notFound, businessRule } = require('../../errors');
+const { createSpacesRepository } = require('./spaces.repository');
 
 const SPACE_TYPES = ['LABORATORIO', 'AUDITORIO', 'SALA_COMPUTO'];
 
@@ -15,50 +16,54 @@ const spaceSchema = {
 
 const updateSchema = { ...spaceSchema, active: { type: 'boolean' } };
 
-function createSpacesService({ spacesRepo, clock }) {
-  function getOrFail(id) {
-    const space = spacesRepo.findById(id);
+function createSpacesService({ db, clock }) {
+  const spacesRepo = createSpacesRepository(db);
+
+  async function getOrFail(id) {
+    const space = await spacesRepo.findById(id);
     if (!space) throw notFound('Espacio no encontrado');
     return space;
   }
 
   return {
-    getOrFail,
-
     // ESP-02: los solicitantes solo ven espacios activos (hallazgo H12).
-    list(user, query) {
+    async list(user, query) {
       const { type } = validate(query, { type: { type: 'string', enum: SPACE_TYPES } }, { partial: true });
       const includeInactive = query.includeInactive === 'true' && user.role !== 'SOLICITANTE';
       return spacesRepo.list({ type, includeInactive });
     },
 
-    get(idParam) {
+    async get(idParam) {
       return getOrFail(parseId(idParam));
     },
 
-    create(input) {
+    async create(input) {
       const data = validate(input, spaceSchema);
-      if (spacesRepo.existsName(data.name)) throw duplicate('Ya existe un espacio con ese nombre');
+      if (await spacesRepo.existsName(data.name)) throw duplicate('Ya existe un espacio con ese nombre');
       return spacesRepo.insert({ ...data, createdAt: clock.now().toISOString() });
     },
 
-    // ESP-03 y ESP-04
-    update(idParam, input) {
+    // ESP-03 y ESP-04. Bloquea el espacio para que no entre una reserva mientras se inactiva.
+    async update(idParam, input) {
       const id = parseId(idParam);
       const patch = validate(input, updateSchema, { partial: true });
-      const space = getOrFail(id);
-      if (patch.name && spacesRepo.existsName(patch.name, id)) {
-        throw duplicate('Ya existe un espacio con ese nombre');
-      }
-      if (patch.active === false && space.active) {
-        const pending = spacesRepo.countFutureActiveReservations(id, localParts(clock.now()));
-        if (pending > 0) {
-          throw businessRule(
-            `No se puede inactivar: el espacio tiene ${pending} reserva(s) activa(s) futura(s). Cancélelas o recházelas primero.`
-          );
+      return db.transaction(async (tx) => {
+        const repo = createSpacesRepository(tx);
+        const space = await repo.findByIdForUpdate(id);
+        if (!space) throw notFound('Espacio no encontrado');
+        if (patch.name && (await repo.existsName(patch.name, id))) {
+          throw duplicate('Ya existe un espacio con ese nombre');
         }
-      }
-      return spacesRepo.update(id, patch);
+        if (patch.active === false && space.active) {
+          const pending = await repo.countFutureActiveReservations(id, localParts(clock.now()));
+          if (pending > 0) {
+            throw businessRule(
+              `No se puede inactivar: el espacio tiene ${pending} reserva(s) activa(s) futura(s). Cancélelas o recházelas primero.`
+            );
+          }
+        }
+        return repo.update(id, patch);
+      });
     },
   };
 }

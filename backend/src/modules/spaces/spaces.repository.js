@@ -6,64 +6,72 @@ const toSpace = (row) =>
     capacity: row.capacity,
     location: row.location,
     resources: row.resources,
-    active: row.active === 1,
-    createdAt: row.created_at,
+    active: row.active,
+    createdAt: new Date(row.created_at).toISOString(),
   };
 
 function createSpacesRepository(db) {
   return {
-    findById(id) {
-      return toSpace(db.prepare('SELECT * FROM spaces WHERE id = ?').get(id));
+    async findById(id) {
+      return toSpace(await db.one('SELECT * FROM spaces WHERE id = $1', [id]));
     },
 
-    // La columna name es COLLATE NOCASE: la comparación ignora mayúsculas (ESP-01-E2).
-    existsName(name, exceptId = 0) {
-      return Boolean(db.prepare('SELECT 1 FROM spaces WHERE name = ? AND id <> ?').get(name, exceptId));
+    // CON-04: bloquea la fila del espacio hasta el fin de la transacción, de modo que las
+    // operaciones sobre un mismo espacio se serializan.
+    async findByIdForUpdate(id) {
+      return toSpace(await db.one('SELECT * FROM spaces WHERE id = $1 FOR UPDATE', [id]));
     },
 
-    list({ type, includeInactive }) {
+    // ESP-01-E2: comparación sin distinguir mayúsculas.
+    async existsName(name, exceptId = 0) {
+      return Boolean(await db.one('SELECT 1 FROM spaces WHERE lower(name) = lower($1) AND id <> $2', [name, exceptId]));
+    },
+
+    async list({ type, includeInactive }) {
       const where = [];
       const params = [];
       if (type) {
-        where.push('type = ?');
         params.push(type);
+        where.push(`type = $${params.length}`);
       }
-      if (!includeInactive) where.push('active = 1');
+      if (!includeInactive) where.push('active');
       const sql = `SELECT * FROM spaces ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY name`;
-      return db.prepare(sql).all(...params).map(toSpace);
+      return (await db.query(sql, params)).map(toSpace);
     },
 
-    insert({ name, type, capacity, location, resources, createdAt }) {
-      const { lastInsertRowid } = db
-        .prepare(
-          'INSERT INTO spaces (name, type, capacity, location, resources, active, created_at) VALUES (?, ?, ?, ?, ?, 1, ?)'
-        )
-        .run(name, type, capacity, location, resources ?? null, createdAt);
-      return this.findById(Number(lastInsertRowid));
+    async insert({ name, type, capacity, location, resources, createdAt }) {
+      const row = await db.one(
+        `INSERT INTO spaces (name, type, capacity, location, resources, active, created_at)
+         VALUES ($1, $2, $3, $4, $5, TRUE, $6) RETURNING *`,
+        [name, type, capacity, location, resources ?? null, createdAt]
+      );
+      return toSpace(row);
     },
 
-    update(id, patch) {
-      const columns = { name: 'name', type: 'type', capacity: 'capacity', location: 'location', resources: 'resources', active: 'active' };
+    async update(id, patch) {
+      const columns = ['name', 'type', 'capacity', 'location', 'resources', 'active'];
       const sets = [];
       const params = [];
-      for (const [key, column] of Object.entries(columns)) {
-        if (patch[key] === undefined) continue;
-        sets.push(`${column} = ?`);
-        params.push(key === 'active' ? Number(patch[key]) : patch[key]);
+      for (const column of columns) {
+        if (patch[column] === undefined) continue;
+        params.push(patch[column]);
+        sets.push(`${column} = $${params.length}`);
       }
-      if (sets.length) db.prepare(`UPDATE spaces SET ${sets.join(', ')} WHERE id = ?`).run(...params, id);
-      return this.findById(id);
+      if (!sets.length) return this.findById(id);
+      params.push(id);
+      const row = await db.one(`UPDATE spaces SET ${sets.join(', ')} WHERE id = $${params.length} RETURNING *`, params);
+      return toSpace(row);
     },
 
     // ESP-04: reservas activas cuyo inicio aún no llega.
-    countFutureActiveReservations(spaceId, { date, time }) {
-      return db
-        .prepare(
-          `SELECT COUNT(*) AS count FROM reservations
-           WHERE space_id = ? AND status IN ('PENDIENTE', 'APROBADA')
-             AND (date > ? OR (date = ? AND start_time > ?))`
-        )
-        .get(spaceId, date, date, time).count;
+    async countFutureActiveReservations(spaceId, { date, time }) {
+      const row = await db.one(
+        `SELECT COUNT(*)::int AS count FROM reservations
+         WHERE space_id = $1 AND status IN ('PENDIENTE', 'APROBADA')
+           AND (date > $2::date OR (date = $2::date AND start_time > $3::time))`,
+        [spaceId, date, time]
+      );
+      return row.count;
     },
   };
 }

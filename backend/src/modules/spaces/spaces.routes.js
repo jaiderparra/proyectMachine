@@ -5,10 +5,10 @@ const { authorize } = require('../../middleware/auth');
 function createSpacesRouter({ spacesService, auth }) {
   const router = express.Router();
   router.use(auth);
-  router.get('/', (req, res) => res.json(spacesService.list(req.user, req.query)));
-  router.get('/:id', (req, res) => res.json(spacesService.get(req.params.id)));
-  router.post('/', authorize('ADMIN'), (req, res) => res.status(201).json(spacesService.create(req.body)));
-  router.patch('/:id', authorize('ADMIN'), (req, res) => res.json(spacesService.update(req.params.id, req.body)));
+  router.get('/', async (req, res) => res.json(await spacesService.list(req.user, req.query)));
+  router.get('/:id', async (req, res) => res.json(await spacesService.get(req.params.id)));
+  router.post('/', authorize('ADMIN'), async (req, res) => res.status(201).json(await spacesService.create(req.body)));
+  router.patch('/:id', authorize('ADMIN'), async (req, res) => res.json(await spacesService.update(req.params.id, req.body)));
   return router;
 }
 

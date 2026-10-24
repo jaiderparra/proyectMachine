@@ -18,8 +18,8 @@ describe('DIS-01 Ocupación diaria', () => {
   });
 
   test('DIS-01-E2 bloques ordenados por hora de inicio, sin datos privados', async () => {
-    insertReservation(ctx.db, { spaceId: SPACES.LAB_REDES, date: '2030-05-10', startTime: '10:00', endTime: '11:00' });
-    insertReservation(ctx.db, {
+    await insertReservation(ctx.db, { spaceId: SPACES.LAB_REDES, date: '2030-05-10', startTime: '10:00', endTime: '11:00' });
+    await insertReservation(ctx.db, {
       spaceId: SPACES.LAB_REDES, date: '2030-05-10', startTime: '08:00', endTime: '09:00', status: 'PENDIENTE',
     });
     const res = await ctx.as(ctx.tokens.solic).get(url(SPACES.LAB_REDES, '2030-05-10'));
@@ -32,10 +32,10 @@ describe('DIS-01 Ocupación diaria', () => {
   });
 
   test('DIS-01-E5 reservas canceladas y rechazadas no aparecen', async () => {
-    insertReservation(ctx.db, {
+    await insertReservation(ctx.db, {
       spaceId: SPACES.LAB_REDES, date: '2030-05-10', startTime: '08:00', endTime: '09:00', status: 'CANCELADA',
     });
-    insertReservation(ctx.db, {
+    await insertReservation(ctx.db, {
       spaceId: SPACES.LAB_REDES, date: '2030-05-10', startTime: '09:00', endTime: '10:00', status: 'RECHAZADA',
     });
     const res = await ctx.as(ctx.tokens.solic).get(url(SPACES.LAB_REDES, '2030-05-10'));
@@ -70,7 +70,7 @@ describe('DIS-02 Verificación de una franja', () => {
   });
 
   test('DIS-02-E2 franja ocupada → available = false con conflictos', async () => {
-    const id = insertReservation(ctx.db, {
+    const id = await insertReservation(ctx.db, {
       spaceId: SPACES.LAB_REDES, date: '2030-05-10', startTime: '09:00', endTime: '11:00',
     });
     const res = await ctx.as(ctx.tokens.solic).get(check('2030-05-10', '08:00', '10:00'));

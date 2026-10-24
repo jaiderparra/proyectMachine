@@ -16,23 +16,24 @@ const SEED_SPACES = [
 ];
 
 // Solo siembra si la base está vacía, así no altera datos reales.
-function seed(db, { bcryptRounds = 10, now = new Date() } = {}) {
-  const { count } = db.prepare('SELECT COUNT(*) AS count FROM users').get();
+async function seed(db, { bcryptRounds = 10, now = new Date() } = {}) {
+  const { count } = await db.one('SELECT COUNT(*)::int AS count FROM users');
   if (count > 0) return false;
 
-  const createdAt = now.toISOString();
-  const insertUser = db.prepare(
-    'INSERT INTO users (name, email, password_hash, role, active, created_at) VALUES (?, ?, ?, ?, 1, ?)'
-  );
-  for (const u of SEED_USERS) {
-    insertUser.run(u.name, u.email, bcrypt.hashSync(u.password, bcryptRounds), u.role, createdAt);
-  }
-  const insertSpace = db.prepare(
-    'INSERT INTO spaces (name, type, capacity, location, resources, active, created_at) VALUES (?, ?, ?, ?, ?, 1, ?)'
-  );
-  for (const s of SEED_SPACES) {
-    insertSpace.run(s.name, s.type, s.capacity, s.location, s.resources, createdAt);
-  }
+  await db.transaction(async (tx) => {
+    for (const u of SEED_USERS) {
+      await tx.query(
+        'INSERT INTO users (name, email, password_hash, role, active, created_at) VALUES ($1, $2, $3, $4, TRUE, $5)',
+        [u.name, u.email, bcrypt.hashSync(u.password, bcryptRounds), u.role, now]
+      );
+    }
+    for (const s of SEED_SPACES) {
+      await tx.query(
+        'INSERT INTO spaces (name, type, capacity, location, resources, active, created_at) VALUES ($1, $2, $3, $4, $5, TRUE, $6)',
+        [s.name, s.type, s.capacity, s.location, s.resources, now]
+      );
+    }
+  });
   return true;
 }
 

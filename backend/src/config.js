@@ -5,7 +5,10 @@ module.exports = {
   port: Number(process.env.PORT) || 4000,
   jwtSecret: process.env.JWT_SECRET || 'dev-secret-cambiar-en-produccion',
   jwtExpiresIn: '8h', // USR-02
-  dbPath: process.env.DB_PATH || path.join(__dirname, '..', 'data', 'reservas.db'),
+  // Supabase / PostgreSQL (cambio migracion-supabase). Sin DATABASE_URL se usa PGlite local.
+  databaseUrl: process.env.DATABASE_URL || '',
+  dbSchema: process.env.DB_SCHEMA || 'reservas',
+  localDataDir: process.env.LOCAL_DATA_DIR || path.join(__dirname, '..', 'data', 'pglite'),
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3000',
   bcryptRounds: Number(process.env.BCRYPT_ROUNDS) || 10,
   seedOnStart: process.env.SEED !== 'false',

@@ -23,26 +23,26 @@ const adminUpdateSchema = {
 };
 
 function createUsersService({ usersRepo, clock, config }) {
-  function createUser({ name, email, password, role }) {
-    if (usersRepo.existsEmail(email)) throw duplicate('Ya existe un usuario con ese correo');
+  async function createUser({ name, email, password, role }) {
+    if (await usersRepo.existsEmail(email)) throw duplicate('Ya existe un usuario con ese correo');
     const passwordHash = bcrypt.hashSync(password, config.bcryptRounds);
     return usersRepo.insert({ name, email, passwordHash, role, createdAt: clock.now().toISOString() });
   }
 
   return {
     // USR-01: el registro público siempre crea SOLICITANTE (se ignora cualquier rol enviado).
-    register(input) {
+    async register(input) {
       const data = validate(input, registerSchema);
       return createUser({ ...data, role: 'SOLICITANTE' });
     },
 
     // USR-02: mismo mensaje para correo inexistente y contraseña incorrecta.
-    login(input) {
+    async login(input) {
       const { email, password } = validate(input, {
         email: { type: 'string', required: true, lowercase: true },
         password: { type: 'string', required: true },
       });
-      const user = usersRepo.findCredentialsByEmail(email);
+      const user = await usersRepo.findCredentialsByEmail(email);
       if (!user || !bcrypt.compareSync(password, user.passwordHash)) {
         throw unauthenticated('Correo o contraseña incorrectos');
       }
@@ -57,15 +57,15 @@ function createUsersService({ usersRepo, clock, config }) {
     },
 
     // USR-03
-    create(input) {
+    async create(input) {
       return createUser(validate(input, adminCreateSchema));
     },
 
     // USR-03 + USR-03-E5 (sin autobloqueo del administrador)
-    update(actor, idParam, input) {
+    async update(actor, idParam, input) {
       const id = parseId(idParam);
       const patch = validate(input, adminUpdateSchema, { partial: true });
-      const target = usersRepo.findById(id);
+      const target = await usersRepo.findById(id);
       if (!target) throw notFound('Usuario no encontrado');
       if (actor.id === id && (patch.active === false || (patch.role && patch.role !== 'ADMIN'))) {
         throw businessRule('Un administrador no puede desactivarse ni quitarse su propio rol');

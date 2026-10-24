@@ -122,7 +122,7 @@ describe('ESP-04 Activar e inactivar', () => {
   });
 
   test('ESP-04-E3 inactivación con reserva aprobada futura → 422 y sigue activo', async () => {
-    insertReservation(ctx.db, { spaceId: SPACES.LAB_REDES, date: '2030-05-10', startTime: '08:00', endTime: '10:00' });
+    await insertReservation(ctx.db, { spaceId: SPACES.LAB_REDES, date: '2030-05-10', startTime: '08:00', endTime: '10:00' });
     const res = await ctx.as(ctx.tokens.admin).patch(`/api/spaces/${SPACES.LAB_REDES}`, { active: false });
     assert.equal(res.status, 422);
     assert.equal(res.body.error.code, 'BUSINESS_RULE');
@@ -131,8 +131,8 @@ describe('ESP-04 Activar e inactivar', () => {
   });
 
   test('las reservas pasadas o canceladas no impiden inactivar', async () => {
-    insertReservation(ctx.db, { spaceId: SPACES.LAB_REDES, date: '2030-04-20', startTime: '08:00', endTime: '10:00' });
-    insertReservation(ctx.db, {
+    await insertReservation(ctx.db, { spaceId: SPACES.LAB_REDES, date: '2030-04-20', startTime: '08:00', endTime: '10:00' });
+    await insertReservation(ctx.db, {
       spaceId: SPACES.LAB_REDES, date: '2030-05-10', startTime: '08:00', endTime: '10:00', status: 'CANCELADA',
     });
     const res = await ctx.as(ctx.tokens.admin).patch(`/api/spaces/${SPACES.LAB_REDES}`, { active: false });

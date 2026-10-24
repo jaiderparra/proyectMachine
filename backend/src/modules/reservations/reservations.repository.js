@@ -13,8 +13,8 @@ const toReservation = (row) =>
     status: row.status,
     decidedBy: row.decided_by,
     decisionReason: row.decision_reason,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    createdAt: new Date(row.created_at).toISOString(),
+    updatedAt: new Date(row.updated_at).toISOString(),
   };
 
 const toHistoryEntry = (row) => ({
@@ -25,115 +25,120 @@ const toHistoryEntry = (row) => ({
   changedBy: row.changed_by,
   changedByName: row.changed_by_name,
   comment: row.comment,
-  changedAt: row.changed_at,
+  changedAt: new Date(row.changed_at).toISOString(),
 });
 
+// La API expone fecha y hora como `YYYY-MM-DD` y `HH:MM` (sdd/project.md).
 const SELECT_WITH_NAMES = `
-  SELECT r.*, s.name AS space_name, u.name AS user_name
+  SELECT r.id, r.space_id, r.user_id, r.purpose, r.attendees, r.status, r.decided_by,
+         r.decision_reason, r.created_at, r.updated_at,
+         to_char(r.date, 'YYYY-MM-DD') AS date,
+         to_char(r.start_time, 'HH24:MI') AS start_time,
+         to_char(r.end_time, 'HH24:MI') AS end_time,
+         s.name AS space_name, u.name AS user_name
   FROM reservations r
   JOIN spaces s ON s.id = r.space_id
   JOIN users u ON u.id = r.user_id`;
 
 function createReservationsRepository(db) {
   return {
-    findById(id) {
-      return toReservation(db.prepare(`${SELECT_WITH_NAMES} WHERE r.id = ?`).get(id));
+    async findById(id) {
+      return toReservation(await db.one(`${SELECT_WITH_NAMES} WHERE r.id = $1`, [id]));
     },
 
-    list({ userId, status, spaceId, date }) {
+    // Bloquea la reserva hasta el fin de la transacción (evita dos transiciones simultáneas).
+    async lockById(id) {
+      return Boolean(await db.one('SELECT id FROM reservations WHERE id = $1 FOR UPDATE', [id]));
+    },
+
+    async list({ userId, status, spaceId, date }) {
       const where = [];
       const params = [];
       for (const [column, value] of [['r.user_id', userId], ['r.status', status], ['r.space_id', spaceId], ['r.date', date]]) {
         if (value === undefined) continue;
-        where.push(`${column} = ?`);
         params.push(value);
+        where.push(`${column} = $${params.length}`);
       }
       const sql = `${SELECT_WITH_NAMES} ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
         ORDER BY r.date DESC, r.start_time DESC, r.id DESC`;
-      return db.prepare(sql).all(...params).map(toReservation);
+      return (await db.query(sql, params)).map(toReservation);
     },
 
     // CON-01/CON-02: reservas del espacio en la fecha, con los estados dados, que se solapan con la franja.
-    findOverlapping({ spaceId, date, startTime, endTime, statuses, excludeId = 0 }) {
-      const placeholders = statuses.map(() => '?').join(', ');
-      return db
-        .prepare(
-          `${SELECT_WITH_NAMES}
-           WHERE r.space_id = ? AND r.date = ? AND r.id <> ?
-             AND r.status IN (${placeholders})
-             AND r.start_time < ? AND ? < r.end_time
-           ORDER BY r.start_time`
-        )
-        .all(spaceId, date, excludeId, ...statuses, endTime, startTime)
-        .map(toReservation);
+    async findOverlapping({ spaceId, date, startTime, endTime, statuses, excludeId = 0 }) {
+      const rows = await db.query(
+        `${SELECT_WITH_NAMES}
+         WHERE r.space_id = $1 AND r.date = $2::date AND r.id <> $3
+           AND r.status = ANY($4::text[])
+           AND r.start_time < $5::time AND $6::time < r.end_time
+         ORDER BY r.start_time`,
+        [spaceId, date, excludeId, statuses, endTime, startTime]
+      );
+      return rows.map(toReservation);
     },
 
     // DIS-01: bloques ocupados de un día.
-    listBySpaceAndDate(spaceId, date, statuses) {
-      const placeholders = statuses.map(() => '?').join(', ');
-      return db
-        .prepare(
-          `${SELECT_WITH_NAMES}
-           WHERE r.space_id = ? AND r.date = ? AND r.status IN (${placeholders})
-           ORDER BY r.start_time`
-        )
-        .all(spaceId, date, ...statuses)
-        .map(toReservation);
+    async listBySpaceAndDate(spaceId, date, statuses) {
+      const rows = await db.query(
+        `${SELECT_WITH_NAMES}
+         WHERE r.space_id = $1 AND r.date = $2::date AND r.status = ANY($3::text[])
+         ORDER BY r.start_time`,
+        [spaceId, date, statuses]
+      );
+      return rows.map(toReservation);
     },
 
     // RES-04: reservas de un usuario en un espacio y fecha, con los estados dados.
-    listByUserSpaceAndDate({ userId, spaceId, date, statuses, excludeId = 0 }) {
-      const placeholders = statuses.map(() => '?').join(', ');
-      return db
-        .prepare(
-          `${SELECT_WITH_NAMES}
-           WHERE r.user_id = ? AND r.space_id = ? AND r.date = ? AND r.id <> ?
-             AND r.status IN (${placeholders})
-           ORDER BY r.start_time`
-        )
-        .all(userId, spaceId, date, excludeId, ...statuses)
-        .map(toReservation);
+    async listByUserSpaceAndDate({ userId, spaceId, date, statuses, excludeId = 0 }) {
+      const rows = await db.query(
+        `${SELECT_WITH_NAMES}
+         WHERE r.user_id = $1 AND r.space_id = $2 AND r.date = $3::date AND r.id <> $4
+           AND r.status = ANY($5::text[])
+         ORDER BY r.start_time`,
+        [userId, spaceId, date, excludeId, statuses]
+      );
+      return rows.map(toReservation);
     },
 
-    insert({ spaceId, userId, date, startTime, endTime, purpose, attendees, status, now }) {
-      const { lastInsertRowid } = db
-        .prepare(
-          `INSERT INTO reservations
-             (space_id, user_id, date, start_time, end_time, purpose, attendees, status, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-        )
-        .run(spaceId, userId, date, startTime, endTime, purpose, attendees, status, now, now);
-      return Number(lastInsertRowid);
+    async insert({ spaceId, userId, date, startTime, endTime, purpose, attendees, status, now }) {
+      const row = await db.one(
+        `INSERT INTO reservations
+           (space_id, user_id, date, start_time, end_time, purpose, attendees, status, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9) RETURNING id`,
+        [spaceId, userId, date, startTime, endTime, purpose, attendees, status, now]
+      );
+      return row.id;
     },
 
-    updateStatus(id, { status, decidedBy, decisionReason, now }) {
-      db.prepare(
+    async updateStatus(id, { status, decidedBy, decisionReason, now }) {
+      await db.query(
         `UPDATE reservations SET
-           status = ?,
-           decided_by = COALESCE(?, decided_by),
-           decision_reason = COALESCE(?, decision_reason),
-           updated_at = ?
-         WHERE id = ?`
-      ).run(status, decidedBy ?? null, decisionReason ?? null, now, id);
+           status = $1,
+           decided_by = COALESCE($2, decided_by),
+           decision_reason = COALESCE($3, decision_reason),
+           updated_at = $4
+         WHERE id = $5`,
+        [status, decidedBy ?? null, decisionReason ?? null, now, id]
+      );
     },
 
     // HIS-01: solo inserción (la BD además lo impone con triggers).
-    addHistory({ reservationId, fromStatus, toStatus, changedBy, comment, now }) {
-      db.prepare(
+    async addHistory({ reservationId, fromStatus, toStatus, changedBy, comment, now }) {
+      await db.query(
         `INSERT INTO reservation_history (reservation_id, from_status, to_status, changed_by, comment, changed_at)
-         VALUES (?, ?, ?, ?, ?, ?)`
-      ).run(reservationId, fromStatus ?? null, toStatus, changedBy, comment ?? null, now);
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [reservationId, fromStatus ?? null, toStatus, changedBy, comment ?? null, now]
+      );
     },
 
-    listHistory(reservationId) {
-      return db
-        .prepare(
-          `SELECT h.*, u.name AS changed_by_name
-           FROM reservation_history h JOIN users u ON u.id = h.changed_by
-           WHERE h.reservation_id = ? ORDER BY h.id`
-        )
-        .all(reservationId)
-        .map(toHistoryEntry);
+    async listHistory(reservationId) {
+      const rows = await db.query(
+        `SELECT h.*, u.name AS changed_by_name
+         FROM reservation_history h JOIN users u ON u.id = h.changed_by
+         WHERE h.reservation_id = $1 ORDER BY h.id`,
+        [reservationId]
+      );
+      return rows.map(toHistoryEntry);
     },
   };
 }

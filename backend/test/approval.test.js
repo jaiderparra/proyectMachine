@@ -76,8 +76,8 @@ describe('APR-01 Aprobar solicitud', () => {
 describe('CON-03 Revalidación al aprobar', () => {
   test('CON-03-E1 conflicto con una aprobada → 409 y sigue PENDIENTE', async () => {
     const ctx = await setup();
-    insertReservation(ctx.db, { spaceId: SPACES.LAB_REDES, date: '2030-05-10', startTime: '09:00', endTime: '11:00' });
-    const pendingId = insertReservation(ctx.db, {
+    await insertReservation(ctx.db, { spaceId: SPACES.LAB_REDES, date: '2030-05-10', startTime: '09:00', endTime: '11:00' });
+    const pendingId = await insertReservation(ctx.db, {
       spaceId: SPACES.LAB_REDES, date: '2030-05-10', startTime: '08:00', endTime: '10:00', status: 'PENDIENTE',
     });
     const res = await ctx.as(ctx.tokens.coord).post(`/api/reservations/${pendingId}/approve`);

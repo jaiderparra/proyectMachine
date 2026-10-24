@@ -55,9 +55,7 @@ describe('RES-01 Crear solicitud', () => {
 
   test('HIS-01-E1 la creación registra la entrada null → PENDIENTE', async () => {
     const created = await ctx.as(ctx.tokens.solic).post('/api/reservations', request());
-    const row = ctx.db
-      .prepare('SELECT * FROM reservation_history WHERE reservation_id = ?')
-      .get(created.body.id);
+    const row = await ctx.db.one('SELECT * FROM reservation_history WHERE reservation_id = $1', [created.body.id]);
     assert.equal(row.from_status, null);
     assert.equal(row.to_status, 'PENDIENTE');
     assert.equal(row.changed_by, created.body.userId);

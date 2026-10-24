@@ -4,46 +4,49 @@ const toUser = (row) =>
     name: row.name,
     email: row.email,
     role: row.role,
-    active: row.active === 1,
-    createdAt: row.created_at,
+    active: row.active,
+    createdAt: new Date(row.created_at).toISOString(),
   };
 
 function createUsersRepository(db) {
   return {
-    findById(id) {
-      return toUser(db.prepare('SELECT * FROM users WHERE id = ?').get(id));
+    async findById(id) {
+      return toUser(await db.one('SELECT * FROM users WHERE id = $1', [id]));
     },
 
     // Incluye el hash: solo para verificar credenciales, nunca se expone.
-    findCredentialsByEmail(email) {
-      const row = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+    async findCredentialsByEmail(email) {
+      const row = await db.one('SELECT * FROM users WHERE email = $1', [email]);
       return row && { ...toUser(row), passwordHash: row.password_hash };
     },
 
-    existsEmail(email) {
-      return Boolean(db.prepare('SELECT 1 FROM users WHERE email = ?').get(email));
+    async existsEmail(email) {
+      return Boolean(await db.one('SELECT 1 FROM users WHERE email = $1', [email]));
     },
 
-    list() {
-      return db.prepare('SELECT * FROM users ORDER BY name').all().map(toUser);
+    async list() {
+      return (await db.query('SELECT * FROM users ORDER BY name')).map(toUser);
     },
 
-    insert({ name, email, passwordHash, role, createdAt }) {
-      const { lastInsertRowid } = db
-        .prepare('INSERT INTO users (name, email, password_hash, role, active, created_at) VALUES (?, ?, ?, ?, 1, ?)')
-        .run(name, email, passwordHash, role, createdAt);
-      return this.findById(Number(lastInsertRowid));
+    async insert({ name, email, passwordHash, role, createdAt }) {
+      const row = await db.one(
+        `INSERT INTO users (name, email, password_hash, role, active, created_at)
+         VALUES ($1, $2, $3, $4, TRUE, $5) RETURNING *`,
+        [name, email, passwordHash, role, createdAt]
+      );
+      return toUser(row);
     },
 
-    update(id, { name, role, active }) {
-      db.prepare(
+    async update(id, { name, role, active }) {
+      const row = await db.one(
         `UPDATE users SET
-           name = COALESCE(?, name),
-           role = COALESCE(?, role),
-           active = COALESCE(?, active)
-         WHERE id = ?`
-      ).run(name ?? null, role ?? null, active === undefined ? null : Number(active), id);
-      return this.findById(id);
+           name = COALESCE($1, name),
+           role = COALESCE($2, role),
+           active = COALESCE($3, active)
+         WHERE id = $4 RETURNING *`,
+        [name ?? null, role ?? null, active ?? null, id]
+      );
+      return toUser(row);
     },
   };
 }

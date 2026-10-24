@@ -1,16 +1,13 @@
 const express = require('express');
 const cors = require('cors');
 const defaultConfig = require('./config');
-const { openDatabase } = require('./db/database');
 const { authenticate } = require('./middleware/auth');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 const { createUsersRepository } = require('./modules/users/users.repository');
 const { createUsersService } = require('./modules/users/users.service');
 const { createAuthRouter, createUsersRouter } = require('./modules/users/users.routes');
-const { createSpacesRepository } = require('./modules/spaces/spaces.repository');
 const { createSpacesService } = require('./modules/spaces/spaces.service');
 const { createSpacesRouter } = require('./modules/spaces/spaces.routes');
-const { createReservationsRepository } = require('./modules/reservations/reservations.repository');
 const { createReservationsService } = require('./modules/reservations/reservations.service');
 const {
   createReservationsRouter,
@@ -20,16 +17,16 @@ const {
 const systemClock = { now: () => new Date() };
 
 // La app recibe sus dependencias (base de datos, reloj, configuración) para poder probarla
-// con SQLite en memoria y un reloj fijo.
-function createApp({ db = openDatabase(':memory:'), clock = systemClock, config = {} } = {}) {
+// con PGlite en memoria y un reloj fijo. En producción `db` apunta a Supabase.
+// Express 5 envía al manejador de errores los rechazos de los handlers async.
+function createApp({ db, clock = systemClock, config = {} }) {
+  if (!db) throw new Error('createApp requiere una conexión de base de datos (db)');
   const cfg = { ...defaultConfig, ...config };
 
   const usersRepo = createUsersRepository(db);
   const usersService = createUsersService({ usersRepo, clock, config: cfg });
-  const spacesRepo = createSpacesRepository(db);
-  const spacesService = createSpacesService({ spacesRepo, clock });
-  const reservationsRepo = createReservationsRepository(db);
-  const reservationsService = createReservationsService({ db, reservationsRepo, spacesService, clock, config: cfg });
+  const spacesService = createSpacesService({ db, clock });
+  const reservationsService = createReservationsService({ db, clock, config: cfg });
   const auth = authenticate({ usersRepo, config: cfg });
 
   const app = express();
