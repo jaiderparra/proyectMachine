@@ -38,10 +38,10 @@
 - [x] 5.5 Pruebas: `approval.test.js`, `cancellation.test.js`, `history.test.js`.
 
 ## 6. Frontend (E7)
-- [ ] 6.1 Proyecto Next.js, cliente API, contexto de sesión — UI-01.
-- [ ] 6.2 Barra de navegación por rol y protección de rutas — UI-01, UI-02.
-- [ ] 6.3 Espacios: disponibilidad y solicitud — UI-03.
-- [ ] 6.4 Mis reservas: cancelar e historial — UI-04.
-- [ ] 6.5 Aprobaciones — UI-05.
-- [ ] 6.6 Administración de espacios y usuarios — UI-06.
-- [ ] 6.7 Verificación: `next build` sin errores.
+- [x] 6.1 Proyecto Next.js, cliente API, contexto de sesión — UI-01.
+- [x] 6.2 Barra de navegación por rol y protección de rutas — UI-01, UI-02.
+- [x] 6.3 Espacios: disponibilidad y solicitud — UI-03.
+- [x] 6.4 Mis reservas: cancelar e historial — UI-04.
+- [x] 6.5 Aprobaciones — UI-05.
+- [x] 6.6 Administración de espacios y usuarios — UI-06.
+- [x] 6.7 Verificación: `next build` sin errores.
