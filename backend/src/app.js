@@ -10,6 +10,12 @@ const { createAuthRouter, createUsersRouter } = require('./modules/users/users.r
 const { createSpacesRepository } = require('./modules/spaces/spaces.repository');
 const { createSpacesService } = require('./modules/spaces/spaces.service');
 const { createSpacesRouter } = require('./modules/spaces/spaces.routes');
+const { createReservationsRepository } = require('./modules/reservations/reservations.repository');
+const { createReservationsService } = require('./modules/reservations/reservations.service');
+const {
+  createReservationsRouter,
+  createAvailabilityRouter,
+} = require('./modules/reservations/reservations.routes');
 
 const systemClock = { now: () => new Date() };
 
@@ -22,6 +28,8 @@ function createApp({ db = openDatabase(':memory:'), clock = systemClock, config 
   const usersService = createUsersService({ usersRepo, clock, config: cfg });
   const spacesRepo = createSpacesRepository(db);
   const spacesService = createSpacesService({ spacesRepo, clock });
+  const reservationsRepo = createReservationsRepository(db);
+  const reservationsService = createReservationsService({ db, reservationsRepo, spacesService, clock, config: cfg });
   const auth = authenticate({ usersRepo, config: cfg });
 
   const app = express();
@@ -31,7 +39,9 @@ function createApp({ db = openDatabase(':memory:'), clock = systemClock, config 
   app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
   app.use('/api/auth', createAuthRouter({ usersService, auth }));
   app.use('/api/users', createUsersRouter({ usersService, auth }));
+  app.use('/api/spaces/:id/availability', createAvailabilityRouter({ reservationsService, auth }));
   app.use('/api/spaces', createSpacesRouter({ spacesService, auth }));
+  app.use('/api/reservations', createReservationsRouter({ reservationsService, auth }));
 
   app.use(notFoundHandler);
   app.use(errorHandler);

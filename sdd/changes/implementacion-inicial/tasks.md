@@ -24,11 +24,11 @@
 - [x] 3.4 Pruebas: `spaces.test.js`.
 
 ## 4. Núcleo de reservas (E5)
-- [ ] 4.1 Reglas puras: `overlaps`, horario de operación, duración mínima, inicio futuro — CON-01, RES-02.
-- [ ] 4.2 Crear solicitud en transacción `BEGIN IMMEDIATE` con verificación de conflictos y entrada de historial — RES-01, CON-02, CON-04, HIS-01.
-- [ ] 4.3 Listar y detallar con visibilidad por rol — RES-03, ROL-04, HIS-03.
-- [ ] 4.4 Disponibilidad diaria y verificación de franja — DIS-01, DIS-02.
-- [ ] 4.5 Pruebas: `rules.unit.test.js`, `reservations.test.js`, `availability.test.js`, `conflicts.test.js`.
+- [x] 4.1 Reglas puras: `overlaps`, horario de operación, duración mínima, inicio futuro — CON-01, RES-02.
+- [x] 4.2 Crear solicitud en transacción `BEGIN IMMEDIATE` con verificación de conflictos y entrada de historial — RES-01, CON-02, CON-04, HIS-01.
+- [x] 4.3 Listar y detallar con visibilidad por rol — RES-03, ROL-04, HIS-03.
+- [x] 4.4 Disponibilidad diaria y verificación de franja — DIS-01, DIS-02.
+- [x] 4.5 Pruebas: `rules.unit.test.js`, `reservations.test.js`, `availability.test.js`, `conflicts.test.js`.
 
 ## 5. Decisión y ciclo de vida (E6)
 - [ ] 5.1 Aprobar con revalidación y control de vencimiento — APR-01, CON-03.
