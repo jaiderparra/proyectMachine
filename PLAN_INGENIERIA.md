@@ -364,3 +364,13 @@ sdd/
 - Aceptación o rechazo del código generado por la IA.
 - Análisis del impacto de los cambios y decisión de cómo incorporarlos.
 - Sustentación técnica del sistema y del proceso.
+
+---
+
+## Anexo A. Registro de cambios posteriores al plan
+
+> El cuerpo del plan se conserva tal como se aprobó antes de especificar (commit inicial). Los cambios posteriores se registran aquí para mantener la trazabilidad.
+
+| Fecha | Cambio | Impacto en el plan | Referencia |
+|---|---|---|---|
+| 2026-10-24 | Nueva regla institucional: ningún usuario puede reservar un espacio más de 4 horas consecutivas. | **Alcance (1.4):** se agrega la regla al punto 4/6 (solicitudes y prevención). **Arquitectura, stack y persistencia (3):** sin cambios; la regla vive en la capa de reglas/servicio y se calcula con datos existentes. **Riesgos (5.2):** materializa R6; se mitiga con propuesta de cambio + delta de especificación + regresión completa. | `sdd/changes/limite-cuatro-horas/proposal.md` |
