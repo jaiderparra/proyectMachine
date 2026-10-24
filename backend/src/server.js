@@ -15,7 +15,12 @@ async function main() {
   }
 
   const app = createApp({ db, config });
-  app.listen(config.port, () => {
+  // Express 5 entrega al callback el error de listen (p. ej. puerto ocupado).
+  app.listen(config.port, (err) => {
+    if (err) {
+      console.error(`No se pudo abrir el puerto ${config.port}: ${err.message}`);
+      process.exit(1);
+    }
     console.log(`API de reservas escuchando en http://localhost:${config.port}/api`);
   });
 }

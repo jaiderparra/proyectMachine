@@ -57,7 +57,10 @@ cd ../frontend && npm install
 
 1. En Supabase abra **Project Settings → Database → Connection string → Session pooler** y copie la cadena. La conexión directa `db.<ref>.supabase.co` es solo IPv6 y puede no resolver en redes IPv4.
 2. Copie `backend/.env.example` a `backend/.env` y complete `DATABASE_URL` (la contraseña debe ir codificada para URL) y `JWT_SECRET`.
-3. Al arrancar, la API crea el esquema `reservas`, sus tablas, índices, triggers y RLS (script idempotente `backend/src/db/schema.sql`) y siembra datos de ejemplo si está vacía.
+3. **Opción A — script SQL:** abra *Supabase → SQL Editor*, pegue el contenido de [`database/supabase_schema.sql`](database/supabase_schema.sql) y presione **Run**. Crea el esquema, las tablas, los índices, los triggers, RLS y los datos iniciales; es idempotente.
+4. **Opción B — automática:** al arrancar, la API crea el esquema `reservas`, sus tablas, índices, triggers y RLS (script idempotente `backend/src/db/schema.sql`) y siembra datos de ejemplo si está vacía.
+
+> **¿No ve las tablas en Supabase?** El *Table Editor* muestra por defecto el esquema `public`. Cambie el selector de esquema (arriba a la izquierda) a **`reservas`**.
 
 > `backend/.env` y cualquier archivo de credenciales están en `.gitignore`. **Nunca** los suba al repositorio.
 
@@ -157,6 +160,7 @@ Errores: `{ "error": { "code", "message", "details" } }` con `400` validación, 
 ├── PLAN_INGENIERIA.md
 ├── INFORME_FINAL.md
 ├── Documentacion_Proyecto_Reservas.docx
+├── database/supabase_schema.sql          ← script SQL completo para Supabase
 ├── sdd/
 │   ├── project.md, README.md, traceability.md
 │   ├── specs/<capacidad>/spec.md        ← especificación vigente
