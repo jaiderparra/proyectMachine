@@ -18,10 +18,10 @@
 - [x] 2.7 Pruebas: `auth.test.js`, `users.test.js`, `permissions.test.js`.
 
 ## 3. Espacios (E4)
-- [ ] 3.1 CRUD sin borrado, nombre único sin mayúsculas — ESP-01, ESP-03.
-- [ ] 3.2 Listado con filtro por tipo y `includeInactive` por rol — ESP-02.
-- [ ] 3.3 Inactivación bloqueada con reservas futuras activas — ESP-04.
-- [ ] 3.4 Pruebas: `spaces.test.js`.
+- [x] 3.1 CRUD sin borrado, nombre único sin mayúsculas — ESP-01, ESP-03.
+- [x] 3.2 Listado con filtro por tipo y `includeInactive` por rol — ESP-02.
+- [x] 3.3 Inactivación bloqueada con reservas futuras activas — ESP-04.
+- [x] 3.4 Pruebas: `spaces.test.js`.
 
 ## 4. Núcleo de reservas (E5)
 - [ ] 4.1 Reglas puras: `overlaps`, horario de operación, duración mínima, inicio futuro — CON-01, RES-02.

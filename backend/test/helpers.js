@@ -51,4 +51,17 @@ async function setup({ now } = {}) {
   return { db, clock, app, api, tokens, as, login };
 }
 
-module.exports = { setup, createClock, SPACES };
+// Inserta una reserva directamente en la BD, saltando las reglas del servicio.
+// Solo para preparar precondiciones que el flujo normal impide (CON-03-E1, ESP-04-E3).
+function insertReservation(db, { spaceId, userId = 3, date, startTime, endTime, status = 'APROBADA' }) {
+  const now = new Date().toISOString();
+  const { lastInsertRowid } = db
+    .prepare(
+      `INSERT INTO reservations (space_id, user_id, date, start_time, end_time, purpose, attendees, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, 'Precondición de prueba', 10, ?, ?, ?)`
+    )
+    .run(spaceId, userId, date, startTime, endTime, status, now, now);
+  return Number(lastInsertRowid);
+}
+
+module.exports = { setup, createClock, insertReservation, SPACES };
