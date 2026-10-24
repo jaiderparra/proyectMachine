@@ -31,11 +31,11 @@
 - [x] 4.5 Pruebas: `rules.unit.test.js`, `reservations.test.js`, `availability.test.js`, `conflicts.test.js`.
 
 ## 5. Decisión y ciclo de vida (E6)
-- [ ] 5.1 Aprobar con revalidación y control de vencimiento — APR-01, CON-03.
-- [ ] 5.2 Rechazar con motivo obligatorio — APR-02.
-- [ ] 5.3 Cancelar (propietario/coordinador/admin, no iniciada) — CAN-01.
-- [ ] 5.4 Historial por reserva — HIS-02.
-- [ ] 5.5 Pruebas: `approval.test.js`, `cancellation.test.js`, `history.test.js`.
+- [x] 5.1 Aprobar con revalidación y control de vencimiento — APR-01, CON-03.
+- [x] 5.2 Rechazar con motivo obligatorio — APR-02.
+- [x] 5.3 Cancelar (propietario/coordinador/admin, no iniciada) — CAN-01.
+- [x] 5.4 Historial por reserva — HIS-02.
+- [x] 5.5 Pruebas: `approval.test.js`, `cancellation.test.js`, `history.test.js`.
 
 ## 6. Frontend (E7)
 - [ ] 6.1 Proyecto Next.js, cliente API, contexto de sesión — UI-01.

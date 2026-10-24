@@ -1,6 +1,7 @@
 const { validate, parseId } = require('../../utils/validation');
 const { transaction } = require('../../db/database');
-const { notFound, forbidden, businessRule, scheduleConflict } = require('../../errors');
+const { notFound, forbidden, businessRule, scheduleConflict, invalidState } = require('../../errors');
+const { hasStarted } = require('../../utils/time');
 const { ACTIVE_STATUSES, scheduleViolation } = require('./reservations.rules');
 
 const STATUSES = ['PENDIENTE', 'APROBADA', 'RECHAZADA', 'CANCELADA'];
@@ -89,6 +90,76 @@ function createReservationsService({ db, reservationsRepo, spacesService, clock,
       const reservation = getOrFail(parseId(idParam));
       assertCanView(user, reservation);
       return reservation;
+    },
+
+    // APR-01, CON-03
+    approve(user, idParam) {
+      const id = parseId(idParam);
+      return transaction(db, () => {
+        const reservation = getOrFail(id);
+        if (reservation.status !== 'PENDIENTE') {
+          throw invalidState(`Solo se pueden aprobar solicitudes pendientes (estado actual: ${reservation.status})`);
+        }
+        if (hasStarted(reservation.date, reservation.startTime, clock.now())) {
+          throw businessRule('No se puede aprobar una solicitud cuya hora de inicio ya pasó');
+        }
+        const conflicts = reservationsRepo.findOverlapping({ ...reservation, statuses: ['APROBADA'], excludeId: id });
+        if (conflicts.length > 0) throw scheduleConflict(conflicts.map(toBlock));
+
+        const now = nowIso();
+        reservationsRepo.updateStatus(id, { status: 'APROBADA', decidedBy: user.id, now });
+        reservationsRepo.addHistory({ reservationId: id, fromStatus: 'PENDIENTE', toStatus: 'APROBADA', changedBy: user.id, now });
+        return reservationsRepo.findById(id);
+      });
+    },
+
+    // APR-02
+    reject(user, idParam, input) {
+      const id = parseId(idParam);
+      const { reason } = validate(input, { reason: { type: 'string', required: true, min: 5, max: 300 } });
+      return transaction(db, () => {
+        const reservation = getOrFail(id);
+        if (reservation.status !== 'PENDIENTE') {
+          throw invalidState(`Solo se pueden rechazar solicitudes pendientes (estado actual: ${reservation.status})`);
+        }
+        const now = nowIso();
+        reservationsRepo.updateStatus(id, { status: 'RECHAZADA', decidedBy: user.id, decisionReason: reason, now });
+        reservationsRepo.addHistory({
+          reservationId: id, fromStatus: 'PENDIENTE', toStatus: 'RECHAZADA', changedBy: user.id, comment: reason, now,
+        });
+        return reservationsRepo.findById(id);
+      });
+    },
+
+    // CAN-01: propietario, COORDINADOR o ADMIN; solo activas y no iniciadas. El motivo va al historial (H16).
+    cancel(user, idParam, input) {
+      const id = parseId(idParam);
+      const { reason } = validate(input, { reason: { type: 'string', max: 300 } }, { partial: true });
+      return transaction(db, () => {
+        const reservation = getOrFail(id);
+        if (!PRIVILEGED.includes(user.role) && reservation.userId !== user.id) {
+          throw forbidden('Solo puede cancelar sus propias reservas');
+        }
+        if (!ACTIVE_STATUSES.includes(reservation.status)) {
+          throw invalidState(`La reserva ya está en estado final (${reservation.status})`);
+        }
+        if (hasStarted(reservation.date, reservation.startTime, clock.now())) {
+          throw businessRule('No se puede cancelar una reserva que ya comenzó o terminó');
+        }
+        const now = nowIso();
+        reservationsRepo.updateStatus(id, { status: 'CANCELADA', now });
+        reservationsRepo.addHistory({
+          reservationId: id, fromStatus: reservation.status, toStatus: 'CANCELADA', changedBy: user.id, comment: reason, now,
+        });
+        return reservationsRepo.findById(id);
+      });
+    },
+
+    // HIS-02
+    history(user, idParam) {
+      const reservation = getOrFail(parseId(idParam));
+      assertCanView(user, reservation);
+      return reservationsRepo.listHistory(reservation.id);
     },
 
     // DIS-01
