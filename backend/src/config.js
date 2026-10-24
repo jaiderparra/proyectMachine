@@ -13,5 +13,6 @@ module.exports = {
     openTime: '07:00', // RES-02 / DIS-01
     closeTime: '22:00',
     minDurationMinutes: 30,
+    maxConsecutiveMinutes: 240, // RES-04 (cambio limite-cuatro-horas)
   },
 };

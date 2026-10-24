@@ -21,4 +21,25 @@ function scheduleViolation({ date, startTime, endTime }, now, schedule) {
   return null;
 }
 
-module.exports = { ACTIVE_STATUSES, overlaps, scheduleViolation };
+// RES-04: minutos de la cadena contigua que forma `slot` con las reservas activas del mismo
+// usuario, espacio y fecha. Como CON-02 impide solapamientos, cada extremo tiene a lo sumo
+// una reserva contigua y la cadena se extiende sin ambigüedad.
+function consecutiveBlockMinutes(slot, sameUserReservations) {
+  let { startTime, endTime } = slot;
+  let extended = true;
+  while (extended) {
+    extended = false;
+    for (const r of sameUserReservations) {
+      if (r.endTime === startTime) {
+        startTime = r.startTime;
+        extended = true;
+      } else if (r.startTime === endTime) {
+        endTime = r.endTime;
+        extended = true;
+      }
+    }
+  }
+  return toMinutes(endTime) - toMinutes(startTime);
+}
+
+module.exports = { ACTIVE_STATUSES, overlaps, scheduleViolation, consecutiveBlockMinutes };

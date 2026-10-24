@@ -66,3 +66,24 @@ describe('RES-02 Reglas de horario (unitarias)', () => {
     assert.equal(isValidTime('24:00'), false);
   });
 });
+
+describe('RES-04 Cadena contigua (unitarias)', () => {
+  const { consecutiveBlockMinutes } = require('../src/modules/reservations/reservations.rules');
+  const r = (startTime, endTime) => ({ startTime, endTime });
+
+  test('sin reservas del usuario: solo cuenta la franja', () => {
+    assert.equal(consecutiveBlockMinutes(r('08:00', '12:00'), []), 240);
+  });
+
+  test('suma reservas contiguas antes y después', () => {
+    assert.equal(consecutiveBlockMinutes(r('10:00', '12:00'), [r('08:00', '10:00'), r('12:00', '14:00')]), 360);
+  });
+
+  test('sigue la cadena a través de varias reservas', () => {
+    assert.equal(consecutiveBlockMinutes(r('11:00', '12:00'), [r('10:00', '11:00'), r('09:00', '10:00'), r('08:00', '09:00')]), 240);
+  });
+
+  test('un hueco corta la cadena', () => {
+    assert.equal(consecutiveBlockMinutes(r('11:30', '13:00'), [r('08:00', '11:00')]), 90);
+  });
+});

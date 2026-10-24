@@ -2,7 +2,7 @@ const { validate, parseId } = require('../../utils/validation');
 const { transaction } = require('../../db/database');
 const { notFound, forbidden, businessRule, scheduleConflict, invalidState } = require('../../errors');
 const { hasStarted } = require('../../utils/time');
-const { ACTIVE_STATUSES, scheduleViolation } = require('./reservations.rules');
+const { ACTIVE_STATUSES, scheduleViolation, consecutiveBlockMinutes } = require('./reservations.rules');
 
 const STATUSES = ['PENDIENTE', 'APROBADA', 'RECHAZADA', 'CANCELADA'];
 const PRIVILEGED = ['ADMIN', 'COORDINADOR'];
@@ -35,6 +35,21 @@ function createReservationsService({ db, reservationsRepo, spacesService, clock,
     return reservation;
   }
 
+  // RES-04: la franja, sumada a las reservas activas contiguas del mismo usuario en el mismo
+  // espacio y fecha, no puede superar el máximo de minutos consecutivos.
+  function assertMaxConsecutive({ userId, spaceId, date, startTime, endTime, excludeId }) {
+    const sameUser = reservationsRepo.listByUserSpaceAndDate({ userId, spaceId, date, statuses: ACTIVE_STATUSES, excludeId });
+    const minutes = consecutiveBlockMinutes({ startTime, endTime }, sameUser);
+    const max = config.schedule.maxConsecutiveMinutes;
+    if (minutes > max) {
+      throw businessRule(
+        `Un usuario no puede reservar el mismo espacio más de ${max / 60} horas consecutivas ` +
+          `(esta reserva sumaría ${Math.floor(minutes / 60)} h ${minutes % 60} min continuos)`,
+        { consecutiveMinutes: minutes, maxConsecutiveMinutes: max }
+      );
+    }
+  }
+
   // ROL-04: un SOLICITANTE solo accede a sus propias reservas.
   function assertCanView(user, reservation) {
     if (!PRIVILEGED.includes(user.role) && reservation.userId !== user.id) {
@@ -57,6 +72,8 @@ function createReservationsService({ db, reservationsRepo, spacesService, clock,
         if (data.attendees > space.capacity) {
           throw businessRule(`El número de asistentes (${data.attendees}) supera la capacidad del espacio (${space.capacity})`);
         }
+
+        assertMaxConsecutive({ ...data, userId: user.id });
 
         const conflicts = reservationsRepo.findOverlapping({ ...data, statuses: ACTIVE_STATUSES });
         if (conflicts.length > 0) throw scheduleConflict(conflicts.map(toBlock));
@@ -103,6 +120,7 @@ function createReservationsService({ db, reservationsRepo, spacesService, clock,
         if (hasStarted(reservation.date, reservation.startTime, clock.now())) {
           throw businessRule('No se puede aprobar una solicitud cuya hora de inicio ya pasó');
         }
+        assertMaxConsecutive({ ...reservation, excludeId: id }); // APR-01-E6
         const conflicts = reservationsRepo.findOverlapping({ ...reservation, statuses: ['APROBADA'], excludeId: id });
         if (conflicts.length > 0) throw scheduleConflict(conflicts.map(toBlock));
 

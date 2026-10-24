@@ -164,6 +164,10 @@ function SpacesView() {
 
           <section className="card">
             <h2>Solicitar reserva</h2>
+            <p className="muted">
+              Horario de 07:00 a 22:00, mínimo 30 minutos. Una persona no puede reservar el mismo espacio más de{' '}
+              <strong>4 horas consecutivas</strong>.
+            </p>
             <form className="stack" onSubmit={onSubmit}>
               <div className="row">
                 <label>

@@ -81,6 +81,20 @@ function createReservationsRepository(db) {
         .map(toReservation);
     },
 
+    // RES-04: reservas de un usuario en un espacio y fecha, con los estados dados.
+    listByUserSpaceAndDate({ userId, spaceId, date, statuses, excludeId = 0 }) {
+      const placeholders = statuses.map(() => '?').join(', ');
+      return db
+        .prepare(
+          `${SELECT_WITH_NAMES}
+           WHERE r.user_id = ? AND r.space_id = ? AND r.date = ? AND r.id <> ?
+             AND r.status IN (${placeholders})
+           ORDER BY r.start_time`
+        )
+        .all(userId, spaceId, date, excludeId, ...statuses)
+        .map(toReservation);
+    },
+
     insert({ spaceId, userId, date, startTime, endTime, purpose, attendees, status, now }) {
       const { lastInsertRowid } = db
         .prepare(
