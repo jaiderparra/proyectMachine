@@ -6,8 +6,8 @@ Sistema web para centralizar la reserva de espacios académicos (laboratorios, a
 
 ## Stack
 
-- Backend: Node.js 22 + Express 4, SQLite (`node:sqlite`), JWT, bcryptjs.
-- Pruebas: `node:test` + supertest.
+- Backend: Node.js 22 + Express 5, PostgreSQL 17 en **Supabase** (driver `pg`, esquema `reservas`), JWT, bcryptjs.
+- Pruebas: `node:test` + supertest + PGlite (PostgreSQL en WASM, en memoria).
 - Frontend: Next.js 15 (App Router) + React.
 
 ## Glosario
