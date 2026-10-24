@@ -3,19 +3,19 @@
 > Cada tarea referencia los requisitos que implementa. Una tarea solo se marca como hecha cuando sus pruebas pasan junto con toda la suite.
 
 ## 1. Base del backend (E3)
-- [ ] 1.1 Estructura `backend/` (Express, `createApp({ db, clock })` inyectable, `server.js`, `config.js`).
-- [ ] 1.2 Base de datos SQLite (`node:sqlite`): esquema `users`, `spaces`, `reservations`, `reservation_history`; datos semilla (admin, coordinador, solicitante, espacios).
-- [ ] 1.3 Manejo de errores uniforme `{ error: { code, message, details } }` y clase `AppError` (project.md).
-- [ ] 1.4 Utilidades de validación (texto, enteros, email, enumeraciones, fecha `YYYY-MM-DD`, hora `HH:MM`).
+- [x] 1.1 Estructura `backend/` (Express, `createApp({ db, clock })` inyectable, `server.js`, `config.js`).
+- [x] 1.2 Base de datos SQLite (`node:sqlite`): esquema `users`, `spaces`, `reservations`, `reservation_history`; datos semilla (admin, coordinador, solicitante, espacios).
+- [x] 1.3 Manejo de errores uniforme `{ error: { code, message, details } }` y clase `AppError` (project.md).
+- [x] 1.4 Utilidades de validación (texto, enteros, email, enumeraciones, fecha `YYYY-MM-DD`, hora `HH:MM`).
 
 ## 2. Identidad (E3)
-- [ ] 2.1 Registro público con rol forzado `SOLICITANTE` y hash bcrypt — USR-01.
-- [ ] 2.2 Login con JWT 8 h; mensaje genérico; cuenta desactivada → 403 — USR-02.
-- [ ] 2.3 `GET /auth/me` — USR-04.
-- [ ] 2.4 Middleware `authenticate` (usuario existente y activo, rol desde BD) — ROL-02.
-- [ ] 2.5 Middleware `authorize(...roles)` con matriz de ROL-03 — ROL-01, ROL-03.
-- [ ] 2.6 Administración de usuarios con protección de autobloqueo — USR-03.
-- [ ] 2.7 Pruebas: `auth.test.js`, `users.test.js`, `permissions.test.js`.
+- [x] 2.1 Registro público con rol forzado `SOLICITANTE` y hash bcrypt — USR-01.
+- [x] 2.2 Login con JWT 8 h; mensaje genérico; cuenta desactivada → 403 — USR-02.
+- [x] 2.3 `GET /auth/me` — USR-04.
+- [x] 2.4 Middleware `authenticate` (usuario existente y activo, rol desde BD) — ROL-02.
+- [x] 2.5 Middleware `authorize(...roles)` con matriz de ROL-03 — ROL-01, ROL-03.
+- [x] 2.6 Administración de usuarios con protección de autobloqueo — USR-03.
+- [x] 2.7 Pruebas: `auth.test.js`, `users.test.js`, `permissions.test.js`.
 
 ## 3. Espacios (E4)
 - [ ] 3.1 CRUD sin borrado, nombre único sin mayúsculas — ESP-01, ESP-03.

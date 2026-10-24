@@ -1,0 +1,9 @@
+node_modules/
+.next/
+out/
+backend/data/
+*.db
+.env
+.env.local
+*.log
+~$*.docx
